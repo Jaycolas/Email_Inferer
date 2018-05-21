@@ -8,10 +8,13 @@ from util import load_obj, save_obj,index_to_label_vector
 import time
 from tensorflow.python import debug as tf_debug
 import datetime
+import argparse
+import sys
 
 
 __author__ = 'Jaycolas'
 
+'''
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
 
 # model parameters
@@ -52,6 +55,48 @@ print("\nParameters:")
 for attr, value in sorted(FLAGS.__flags.items()):
     print("{}={}".format(attr.upper(), value))
 print("")
+'''
+
+
+ROOT_PATH ='./dataset/email'
+TRAIN_TFRECORD_DATA = os.path.join(ROOT_PATH, 'train.tfrecords')
+DEV_TFRECORD_DATA   = os.path.join(ROOT_PATH, 'dev.tfrecords')
+VAL_TFRECORD_DATA   = os.path.join(ROOT_PATH, 'val.tfrecords')
+
+FLAGS=None
+
+def add_arguments(parser):
+    """Build ArgumentParser."""
+    parser.register("type", "bool", lambda v: v.lower() == "true")
+
+    # Data related
+    parser.add_argument("--dev_sample_percentage", type=float, default=0.1, help="Percentage of the training data to use for validation")
+
+    # Model parameters
+    parser.add_argument("--embedding_size", type=int, default= 128, help="Dimensionality of character embedding (default: 128)")
+    parser.add_argument("--filter_sizes", type=str, default="3,4,5", help="Comma-separated filter sizes (default: '3,4,5')")
+    parser.add_argument("--num_filters", type=int, default=50, help="Number of filters per filter size (default: 128)")
+    parser.add_argument("--dropout_keep_prob", type=float, default=0.8, help="Dropout keep probability (default: 0.5)")
+    parser.add_argument("--sequence_length",type=int, default=200, help="Unified sequence length for each email (default:400)")
+    parser.add_argument("--learning_rate", type=float, default=0.01, help="Initial learning rate (default:0.01)")
+    parser.add_argument("--l2_reg_lambda", type=float, default=0.01, help="l2 regularization lambda value (default:0.01)")
+
+    # Training parameters
+    parser.add_argument("--batch_size", type=int, default=128, help="Batch Size (default: 64)")
+    parser.add_argument("--num_epochs", type=int, default=5, help="Number of training epochs (default: 200)")
+    parser.add_argument("--evaluate_every", type=int, default=20, help="Evaluate model on dev set after this many steps (default: 100)")
+    parser.add_argument("--checkpoint_every_epoch", type=int, default=60, help="Save model after this many epoch (default: 100)")
+    parser.add_argument("--restore_checkpoint", type=str, default="./", help="Checkpoint location of current training")
+    parser.add_argument("--num_checkpoints", type=int, default=5, help="Number of checkpoints to store (default: 5)")
+    parser.add_argument("--warmup_scheme", type=str,default="", help="The scheme for learning rate warm up (default: t2t)")
+    parser.add_argument("--decay_scheme", type=str, default="", help="The scheme for learning rate decay (default: luong10)")
+    parser.add_argument("--warmup_step", type=int,default="10", help="The global step when learning rate warm up begins (default: 10)")
+    parser.add_argument("--num_train_steps", type=int, default=300, help="The maximum total number of train steps")
+
+    # Misc Parameters
+    parser.add_argument("--allow_soft_placement", type=bool, default=True, help="Allow device soft device placement")
+    parser.add_argument("--log_device_placement", type=bool, default=False, help="Log placement of ops on devices")
+    parser.add_argument("--debug", type=bool,default=False, help="Enable debug or not(default: False)")
 
 
 def _parse_function(example_proto):
@@ -92,7 +137,7 @@ def create_hparams(flags):
   )
 
 
-def train():
+def train(unused_argv):
 
     #1. Preparing dataset
     hparams = create_hparams(FLAGS)
@@ -239,12 +284,11 @@ def train():
                         break
 
 
-
-
-
-
-
-train()
+if __name__ == "__main__":
+  nmt_parser = argparse.ArgumentParser()
+  add_arguments(nmt_parser)
+  FLAGS, unparsed = nmt_parser.parse_known_args()
+  tf.app.run(main=train, argv=[sys.argv[0]] + unparsed)
 
 
 

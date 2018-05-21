@@ -113,18 +113,18 @@ def index_to_label_vector(index_batch, label_vocab):
 
 def label_vector_to_index(label_batch, label_vocab):
     #print label_batch
-    print np.shape(label_batch)
+    #print np.shape(label_batch)
     if np.shape(label_batch)[0]==1:
         label_batch=np.squeeze(label_batch, axis=0)
     #print np.shape(label_batch)
-    print np.shape(label_batch)
+    #print np.shape(label_batch)
     ret_dense_vector = []
     ret_email_addr = []
     for label in label_batch:
         #print label
         index_list = np.nonzero(label)
         #print index_list
-        print np.shape(index_list)
+        #print np.shape(index_list)
         if 1 in np.shape(index_list):
             index_list = np.squeeze(index_list)
         email_list = label_vocab.decode_index_list(index_list)
