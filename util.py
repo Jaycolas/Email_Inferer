@@ -132,6 +132,13 @@ def label_vector_to_index(label_batch, label_vocab):
         ret_email_addr.append(email_list)
     return ret_dense_vector, ret_email_addr
 
+def get_device_str(device_id, num_gpus):
+    """Return a device string for multi-GPU setup."""
+    if num_gpus == 0:
+        return "/cpu:0"
+    device_str_output = "/gpu:%d" % (device_id % num_gpus)
+    return device_str_output
+
 
 def save_obj(obj, name):
     with open('obj/'+ name + '.pkl', 'wb') as f:

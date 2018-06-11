@@ -77,7 +77,7 @@ def add_arguments(parser):
     parser.add_argument("--filter_sizes", type=str, default="3,4,5", help="Comma-separated filter sizes (default: '3,4,5')")
     parser.add_argument("--num_filters", type=int, default=50, help="Number of filters per filter size (default: 128)")
     parser.add_argument("--dropout_keep_prob", type=float, default=0.8, help="Dropout keep probability (default: 0.5)")
-    parser.add_argument("--sequence_length",type=int, default=200, help="Unified sequence length for each email (default:400)")
+    parser.add_argument("--sequence_length", type=int, default=200, help="Unified sequence length for each email (default:400)")
     parser.add_argument("--learning_rate", type=float, default=0.01, help="Initial learning rate (default:0.01)")
     parser.add_argument("--l2_reg_lambda", type=float, default=0.01, help="l2 regularization lambda value (default:0.01)")
 
@@ -92,6 +92,7 @@ def add_arguments(parser):
     parser.add_argument("--decay_scheme", type=str, default="", help="The scheme for learning rate decay (default: luong10)")
     parser.add_argument("--warmup_step", type=int,default="10", help="The global step when learning rate warm up begins (default: 10)")
     parser.add_argument("--num_train_steps", type=int, default=300, help="The maximum total number of train steps")
+    parser.add_argument("--num_gpus", type=int, default=0, help="GPUs you wana use in your training, default is 0, will apply model on CPU")
 
     # Misc Parameters
     parser.add_argument("--allow_soft_placement", type=bool, default=True, help="Allow device soft device placement")
@@ -132,7 +133,11 @@ def create_hparams(flags):
       decay_scheme=flags.decay_scheme,
       num_train_steps=flags.num_train_steps,
       warmup_step = flags.warmup_step,
-      checkpoint_every_epoch = flags.checkpoint_every_epoch,
+      checkpoint_every_epoch=flags.checkpoint_every_epoch,
+      num_gpus=flags.num_gpus,
+
+      # Misc Parameters
+      log_device_placement=flags.log_device_placement,
       debug=flags.debug
   )
 
@@ -174,11 +179,11 @@ def train(unused_argv):
 
     #2.
 
-    with tf.Session() as sess:
+    with tf.Session(config=tf.ConfigProto(log_device_placement=hparams.log_device_placement)) as sess:
         cnn = TextCNN(hparams=hparams,
                       mode=tf.contrib.learn.ModeKeys.TRAIN,
-                      source_vocab_table = input_vocab,
-                      target_vocab_table = label_vocab,
+                      source_vocab_table=input_vocab,
+                      target_vocab_table=label_vocab,
                       scope = None,
                       extra_args = None)
 
