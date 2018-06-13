@@ -140,6 +140,7 @@ def create_hparams(flags):
 
       # Misc Parameters
       log_device_placement=flags.log_device_placement,
+      allow_soft_placement=flags.allow_soft_placement,
       debug=flags.debug
   )
 
@@ -181,7 +182,10 @@ def train(unused_argv):
 
     #2.
 
-    with tf.Session(config=tf.ConfigProto(log_device_placement=hparams.log_device_placement)) as sess:
+    config = tf.ConfigProto(log_device_placement=hparams.log_device_placement,
+                            allow_soft_placement=hparams.allow_soft_placement)
+
+    with tf.Session(config=config) as sess:
         cnn = TextCNN(hparams=hparams,
                       mode=tf.contrib.learn.ModeKeys.TRAIN,
                       source_vocab_table=input_vocab,
