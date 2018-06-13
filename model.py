@@ -348,7 +348,7 @@ class Model(object):
     out_y, out_x = sess.run([val_y, val_x])
 
     if np.shape(out_y)[0]<self.batch_size:
-      print "Not enough samples in this batch"
+      print("Not enough samples in this batch")
       return
 
     feed_dict = {self.input_placeholder: out_x,
@@ -359,13 +359,13 @@ class Model(object):
 
     print ("(VAL) Evaluating the model using val dataset")
     #print prediction
-    print out_y
+    print(out_y)
     prediction_index, prediction_result = label_vector_to_index(prediction, label_vocab)
     real_result = map(lambda x:label_vocab.decode_index_list(x), out_y)
 
     for predict, real in zip(prediction_result, real_result):
-      print "Real result is ", real
-      print "Predicted result is", predict
+      print("Real result is ", real)
+      print("Predicted result is", predict)
 
 
 

@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
+from __future__ import print_function
 import tensorflow as tf
 import os
 from text_cnn import  TextCNN
@@ -10,6 +11,7 @@ from tensorflow.python import debug as tf_debug
 import datetime
 import argparse
 import sys
+
 
 
 __author__ = 'Jaycolas'
@@ -233,14 +235,14 @@ def train(unused_argv):
 
         #Before training started, need to check if user need to recover any pre-trained model
         chpt = tf.train.latest_checkpoint(hparams.restore_checkpoint)
-        print chpt
+        print(chpt)
         if chpt:
             if tf.train.checkpoint_exists(chpt):
                 saver.restore(sess, chpt)
-                print "Model has been resotre from %s"%(hparams.restore_checkpoint)
+                print("Model has been resotre from %s"%(hparams.restore_checkpoint))
         else:
             sess.run(tf.global_variables_initializer())
-            print "No pre-trained model loaeded, initialized all variable"
+            print("No pre-trained model loaeded, initialized all variable")
 
         #Local variables and iterator could not be saved, we need to initialize them again
         sess.run(tf.local_variables_initializer())
@@ -251,7 +253,7 @@ def train(unused_argv):
             sess = tf_debug.LocalCLIDebugWrapperSession(sess)
 
         for epoch in range(hparams.num_epochs):
-            print "Starting epoch %d"%(epoch)
+            print("Starting epoch %d"%(epoch))
             epoch_start_time = datetime.datetime.now()
 
             while True:
@@ -266,7 +268,7 @@ def train(unused_argv):
             epoch_end_time = datetime.datetime.now()
             epoch_dur = (epoch_end_time-epoch_start_time).seconds
 
-            print "epoch costed %d"%(epoch_dur)
+            print("epoch costed %d"%(epoch_dur))
 
             # Run the Dev dataset for every epoch
             if epoch % hparams.evaluate_every == 0:
