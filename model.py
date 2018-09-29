@@ -27,7 +27,7 @@ class Model(object):
       mode: TRAIN | EVAL | INFER
       iterator: Dataset Iterator that feeds data.
       sequence_length: The length (word count) of each sequence
-      num_class: The total number of label class
+      num_class: The total number of label classd
       source_vocab_table: Lookup table mapping source words to ids.
       target_vocab_table: Lookup table mapping target words to ids.
       scope: scope of the model.
@@ -43,6 +43,7 @@ class Model(object):
     self.l2_reg_lambda = hparams.l2_reg_lambda
     self.mode = mode
     self.global_step = tf.Variable(0, name='global_step', trainable=False)
+    self.is_multiclass = hparams.is_multiclass
     self.accuracy = 0
     self.precision = 0
     self.recall = 0
@@ -56,7 +57,7 @@ class Model(object):
     self.embedded_chars, self.embedded_summary = self.add_embedding()
     self.model_output, self.model_summary = self.add_model(self.embedded_chars)
     self.scores, self.predictions, self.l2_loss, self.fc_summary = self.fc_layer(self.model_output)
-    self.loss, self.loss_summary = self.add_loss(self.scores, self.l2_loss)
+    self.loss, self.loss_summary = self.add_loss(self.scores, self.is_multiclass, self.l2_loss)
     self.accuracy, self.recall, self.precision, self.perform_summary = self.compute_performance(self.predictions)
 
     if self.mode == tf.contrib.learn.ModeKeys.TRAIN:
@@ -170,11 +171,17 @@ class Model(object):
       scores = tf.nn.xw_plus_b(model_output, W, b, name="scores")
 
       #In multi-label classification, we use logistic regression to process the score, and define the predictions
-      probas = tf.sigmoid(scores, name='sigmoid_scores')
-      predictions = tf.cast(tf.round(probas, name="predictions"), dtype=tf.float32)
+      if self.is_multiclass:
+        probas = tf.sigmoid(scores, name='sigmoid_scores')
+        predictions = tf.cast(tf.round(probas, name="predictions"), dtype=tf.float32) #In this case predicion is a multi hot vector
+      else:
+        index = tf.argmax(scores, axis=1)  #In such case, predictions is only a index
+        predictions = tf.one_hot(indices=index, depth=self.num_class, name='one_hot_predictions')
+
+
       return scores, predictions, l2_loss, fc_summary
 
-  def add_loss(self, fc_layer_output, l2_loss):
+  def add_loss(self, fc_layer_output, is_multi_class, l2_loss):
     """
 
     :param fc_layer_output: (batch_size, num_class)
@@ -183,7 +190,11 @@ class Model(object):
 
     # Calculate mean cross-entropy loss
     with tf.name_scope("loss"):
-      losses = tf.nn.sigmoid_cross_entropy_with_logits(logits=fc_layer_output, labels=self.labels_placeholder, name='cross_entropy')
+      if is_multi_class:
+        losses = tf.nn.sigmoid_cross_entropy_with_logits(logits=fc_layer_output, labels=self.labels_placeholder, name='sigmoid_cross_entropy')
+      else:
+        losses = tf.nn.softmax_cross_entropy_with_logits_v2(logits=fc_layer_output, labels=self.labels_placeholder, name='softmax_cross_entropy')
+
       loss = tf.reduce_mean(losses, name='reduce_mean') + self.l2_reg_lambda * l2_loss
       loss_summary = tf.summary.scalar('loss', loss)
 
@@ -228,7 +239,7 @@ class Model(object):
 
 
 
-    optimizer = tf.train.AdamOptimizer(learning_rate)
+    optimizer=tf.train.AdamOptimizer(learning_rate)
     grads_and_vars = optimizer.compute_gradients(loss)
     train_op = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
 
@@ -355,11 +366,11 @@ class Model(object):
                  #self.labels_placeholder: None,
                  self.dropout_placeholder: 1.0}
 
-    prediction = sess.run([self.predictions], feed_dict=feed_dict)
+    prediction = sess.run(self.predictions, feed_dict=feed_dict)
 
     print ("(VAL) Evaluating the model using val dataset")
     #print prediction
-    print(out_y)
+    #print(out_y)
     prediction_index, prediction_result = label_vector_to_index(prediction, label_vocab)
     real_result = map(lambda x:label_vocab.decode_index_list(x), out_y)
 

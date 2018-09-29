@@ -19,6 +19,7 @@ VAL_TFRECORD_FILE = os.path.join(FILEPATH, 'val.tfrecords')
 DEV_SAMPLE_PER = 0.2
 VAL_SAMPLE_PER = 0.1
 doc_file_list = glob.glob(os.path.join(FILEPATH, input_fname_pattern))
+LOWER_DIC_FILTER_THRESHOLD = 0
 
 def save_obj(obj, name):
     with open('/obj/'+ name + '.pkl', 'wb') as f:
@@ -39,6 +40,8 @@ def buildVocabforInput(file_list):
         #print x_txt
         input_vocab.construct(x_txt)
 
+    input_vocab.filter_dictionary(lower_threshold=LOWER_DIC_FILTER_THRESHOLD)
+
     return input_vocab
 
 def buildVocabforLabel(file_list):
@@ -50,6 +53,8 @@ def buildVocabforLabel(file_list):
         y_txt = fd.readlines()[0].split()
         print y_txt
         label_vocab.construct(y_txt)
+
+    label_vocab.filter_dictionary(lower_threshold=LOWER_DIC_FILTER_THRESHOLD)
 
     return label_vocab
 

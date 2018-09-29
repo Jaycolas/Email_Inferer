@@ -82,16 +82,18 @@ def add_arguments(parser):
     parser.add_argument("--sequence_length", type=int, default=200, help="Unified sequence length for each email (default:400)")
     parser.add_argument("--learning_rate", type=float, default=0.01, help="Initial learning rate (default:0.01)")
     parser.add_argument("--l2_reg_lambda", type=float, default=0.01, help="l2 regularization lambda value (default:0.01)")
+    parser.add_argument("--is_multiclass", type=bool, default=True, help="To indicate if the classification job is multi_class or single class")
+
 
     # Training parameters
     parser.add_argument("--batch_size", type=int, default=128, help="Batch Size (default: 64)")
-    parser.add_argument("--num_epochs", type=int, default=5, help="Number of training epochs (default: 200)")
+    parser.add_argument("--num_epochs", type=int, default=10, help="Number of training epochs (default: 200)")
     parser.add_argument("--evaluate_every", type=int, default=20, help="Evaluate model on dev set after this many steps (default: 100)")
-    parser.add_argument("--checkpoint_every_epoch", type=int, default=60, help="Save model after this many epoch (default: 100)")
+    parser.add_argument("--checkpoint_every_epoch", type=int, default=5, help="Save model after this many epoch (default: 100)")
     parser.add_argument("--restore_checkpoint", type=str, default="./", help="Checkpoint location of current training")
     parser.add_argument("--num_checkpoints", type=int, default=5, help="Number of checkpoints to store (default: 5)")
-    parser.add_argument("--warmup_scheme", type=str,default="", help="The scheme for learning rate warm up (default: t2t)")
-    parser.add_argument("--decay_scheme", type=str, default="", help="The scheme for learning rate decay (default: luong10)")
+    parser.add_argument("--warmup_scheme", type=str,default="t2t", help="The scheme for learning rate warm up (default: t2t)")
+    parser.add_argument("--decay_scheme", type=str, default="luong10", help="The scheme for learning rate decay (default: luong10)")
     parser.add_argument("--warmup_step", type=int,default="10", help="The global step when learning rate warm up begins (default: 10)")
     parser.add_argument("--num_train_steps", type=int, default=300, help="The maximum total number of train steps")
     parser.add_argument("--num_gpus", type=int, default=0, help="GPUs you wana use in your training, default is 0, will apply model on CPU")
@@ -296,10 +298,10 @@ def train(unused_argv):
 
 
 if __name__ == "__main__":
-  nmt_parser = argparse.ArgumentParser()
-  add_arguments(nmt_parser)
-  FLAGS, unparsed = nmt_parser.parse_known_args()
-  tf.app.run(main=train, argv=[sys.argv[0]] + unparsed)
+    nmt_parser = argparse.ArgumentParser()
+    add_arguments(nmt_parser)
+    FLAGS, unparsed = nmt_parser.parse_known_args()
+    tf.app.run(main=train, argv=[sys.argv[0]] + unparsed)
 
 
 

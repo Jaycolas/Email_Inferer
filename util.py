@@ -8,6 +8,7 @@ import os
 import numpy as np
 from collections import defaultdict
 import pickle
+import matplotlib.pyplot as plt
 
 __author__ = 'Jaycolas'
 
@@ -23,10 +24,12 @@ class Vocab(object):
     self.eos = '<EOS>'
     self.padding = '<PAD>'
     self.vocab_len = 0
-    self.add_word(self.unknown, count=1)
-    self.add_word(self.sos, count=1)
-    self.add_word(self.eos, count=1)
-    self.add_word(self.padding, count=1)
+    self.most_cnt_one_word = 0
+    self.add_word(self.unknown, count=5000)
+    self.add_word(self.sos, count=5000)
+    self.add_word(self.eos, count=5000)
+    self.add_word(self.padding, count=5000)
+
 
   def add_word(self, word, count=1):
     if word not in self.word_to_index:
@@ -35,12 +38,47 @@ class Vocab(object):
       self.index_to_word[index] = word
     self.word_freq[word] += count
 
+    #Record the most count of one word
+    if self.word_freq[word] > self.most_cnt_one_word:
+      self.most_cnt_one_word = self.word_freq[word]
+
+  def remove_word(self, word):
+    if word in self.word_to_index:
+      print 'Deleting word %s in dictionary'%(word)
+      index = self.word_to_index[word]
+      del self.word_freq[word]
+      del self.word_to_index[word]
+      del self.index_to_word[index]
+
+  def filter_dictionary(self, lower_threshold):
+    filter_cnt = 0
+    for word, freq in self.word_freq.items():
+      if freq <= lower_threshold:
+        self.remove_word(word)
+        filter_cnt+=1
+    print("Filtered {} out of {} total words".format(filter_cnt, self.__len__()))
+
+  def word_distribution(self):
+    word_count_list = np.zeros(self.most_cnt_one_word+1)
+    for word, count in self.word_freq.items():
+      word_count_list[count]+=1
+
+    x = np.arange(self.most_cnt_one_word+1)
+    y = word_count_list
+    #colors = np.random.rand(N)
+    #area = (30 * np.random.rand(N)) ** 2  # 0 to 15 point radii
+
+    plt.scatter(x[0:300], y[0:300])
+    plt.show()
+
+
+
   def construct(self, words):
     for word in words:
       self.add_word(word)
     self.total_words = float(sum(self.word_freq.values()))
-    self.vocab_len = len(self.word_freq)
-    print('{} total words with {} uniques'.format(self.total_words, len(self.word_freq)))
+    #self.vocab_len = len(self.word_freq)
+    #print('{} total words with {} uniques'.format(self.total_words, len(self.word_freq)))
 
   def encode(self, word):
     if word not in self.word_to_index:
@@ -48,7 +86,7 @@ class Vocab(object):
     return self.word_to_index[word]
 
   def encode_word_list(self, word_list):
-    return map(lambda x:self.encode(x),word_list)
+    return map(lambda x:self.encode(x), word_list)
 
   def decode(self, index):
     if index not in self.index_to_word:
@@ -59,44 +97,42 @@ class Vocab(object):
     if index_list is None:
         return 0
 
-    if len(index_list)==1:
-        return self.decode(index_list)
-    else:
-        return map(lambda x:self.decode(x), index_list)
+    return map(lambda x: self.decode(x), index_list)
 
 
   def __len__(self):
     return len(self.word_freq)
 
 def tokenize_helper(txt):
-    txt = txt.replace(':', ' ')
-    #txt = txt.replace('-', ' ')
-    txt = txt.replace('/', ' ')
-    txt = txt.replace('>', ' ')
-    txt = txt.replace('<', ' ')
-    txt = txt.replace('?', ' ')
-    txt = txt.replace('\\', ' ')
-    txt = txt.replace('*', ' ')
-    txt = txt.replace('|', ' ')
-    txt = txt.replace('#', ' ')
-    txt = txt.replace('$', ' ')
-    txt = txt.replace('!', ' ')
-    txt = txt.replace('\'', ' ')
-    txt = txt.replace('(', ' ')
-    txt = txt.replace(')', ' ')
-    txt = txt.replace(',', ' ')
-    txt = txt.replace(';', ' ')
-    txt = txt.replace('\"', ' ')
-    txt = txt.replace('\'', ' ')
-    txt = txt.replace('&', ' ')
-    txt = txt.replace('[',' ')
-    txt = txt.replace(']',' ')
-    txt = txt.replace('[',' ')
-    txt = txt.replace('@',' ')
-    txt = txt.replace('{',' ')
-    txt = txt.replace('}',' ')
-    txt = txt.replace('~',' ')
-    txt = txt.replace('qti.qualcomm.com',' ')
+    if txt is not None:
+        txt = txt.replace(':', ' ')
+        #txt = txt.replace('-', ' ')
+        txt = txt.replace('/', ' ')
+        txt = txt.replace('>', ' ')
+        txt = txt.replace('<', ' ')
+        txt = txt.replace('?', ' ')
+        txt = txt.replace('\\', ' ')
+        txt = txt.replace('*', ' ')
+        txt = txt.replace('|', ' ')
+        txt = txt.replace('#', ' ')
+        txt = txt.replace('$', ' ')
+        txt = txt.replace('!', ' ')
+        txt = txt.replace('\'', ' ')
+        txt = txt.replace('(', ' ')
+        txt = txt.replace(')', ' ')
+        txt = txt.replace(',', ' ')
+        txt = txt.replace(';', ' ')
+        txt = txt.replace('\"', ' ')
+        txt = txt.replace('\'', ' ')
+        txt = txt.replace('&', ' ')
+        txt = txt.replace('[',' ')
+        txt = txt.replace(']',' ')
+        txt = txt.replace('[',' ')
+        txt = txt.replace('@',' ')
+        txt = txt.replace('{',' ')
+        txt = txt.replace('}',' ')
+        txt = txt.replace('~',' ')
+        txt = txt.replace('qti.qualcomm.com',' ')
     return txt
 
 
@@ -104,7 +140,7 @@ def index_to_label_vector(index_batch, label_vocab):
     ret_dense_vector = []
 
     for index in index_batch:
-        index = index[index!=0]
+        index = index[index != 0]
         label_vector = np.zeros(int(label_vocab.vocab_len))
         label_vector[index]=1
         ret_dense_vector.append(label_vector)
@@ -114,8 +150,8 @@ def index_to_label_vector(index_batch, label_vocab):
 def label_vector_to_index(label_batch, label_vocab):
     #print label_batch
     #print np.shape(label_batch)
-    if np.shape(label_batch)[0]==1:
-        label_batch=np.squeeze(label_batch, axis=0)
+    #if np.shape(label_batch)[0]==1:
+        #label_batch=np.squeeze(label_batch, axis=0)
     #print np.shape(label_batch)
     #print np.shape(label_batch)
     ret_dense_vector = []
@@ -123,12 +159,13 @@ def label_vector_to_index(label_batch, label_vocab):
     for label in label_batch:
         #print label
         index_list = np.nonzero(label)
+        #index_list should be a tuple
         #print index_list
         #print np.shape(index_list)
-        if 1 in np.shape(index_list):
-            index_list = np.squeeze(index_list)
-        email_list = label_vocab.decode_index_list(index_list)
-        ret_dense_vector.append(index_list)
+        print index_list
+
+        email_list = label_vocab.decode_index_list(index_list[0].tolist())  #Change the numpy array to list
+        ret_dense_vector.append(index_list[0])
         ret_email_addr.append(email_list)
     return ret_dense_vector, ret_email_addr
 
@@ -140,12 +177,13 @@ def get_device_str(device_id, num_gpus):
     return device_str_output
 
 
-def save_obj(obj, name):
-    with open('obj/'+ name + '.pkl', 'wb') as f:
+def save_obj(filepath, obj, name):
+    with open(filepath + '/vocab/'+ name + '.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
-def load_obj(name):
-    with open('obj/' + name + '.pkl', 'rb') as f:
+
+def load_obj(filepath, name):
+    with open(filepath + '/vocab/' + name + '.pkl', 'rb') as f:
         return pickle.load(f)
 
 def for_grad_var_names(var_name):
@@ -193,3 +231,78 @@ def variable_summaries(var, var_name):
         tf.summary.scalar('max', tf.reduce_max(var))
         tf.summary.scalar('min', tf.reduce_min(var))
         tf.summary.histogram('histogram', var)
+
+
+def create_hparams(flags):
+  """Create training hparams."""
+  return tf.contrib.training.HParams(
+      # Data
+      dev_sample_percentage=flags.dev_sample_percentage,
+
+      # Model parameters
+      embedding_size=flags.embedding_size,
+      filter_sizes=flags.filter_sizes,
+      num_filters=flags.num_filters,
+      dropout_keep_prob=flags.dropout_keep_prob,
+      sequence_length=flags.sequence_length,
+      learning_rate=flags.learning_rate,
+      l2_reg_lambda=flags.l2_reg_lambda,
+      is_multiclass=flags.is_multiclass,
+
+      # Training Parameters
+      batch_size=flags.batch_size,
+      num_epochs=flags.num_epochs,
+      evaluate_every=flags.evaluate_every,
+      #checkpoint_every=flags.checkpoint_every,
+      num_checkpoints=flags.num_checkpoints,
+      restore_checkpoint = flags.restore_checkpoint,
+      warmup_scheme=flags.warmup_scheme,
+      decay_scheme=flags.decay_scheme,
+      num_train_steps=flags.num_train_steps,
+      warmup_step = flags.warmup_step,
+      checkpoint_every_epoch=flags.checkpoint_every_epoch,
+      num_gpus=flags.num_gpus,
+
+      # Misc Parameters
+      log_device_placement=flags.log_device_placement,
+      allow_soft_placement=flags.allow_soft_placement,
+      debug=flags.debug
+  )
+
+def create_or_load_hparams(
+    out_dir, default_hparams, hparams_path, save_hparams=True):
+  """Create hparams or load hparams from out_dir."""
+  hparams = utils.load_hparams(out_dir)
+  if not hparams:
+    hparams = default_hparams
+    hparams = utils.maybe_parse_standard_hparams(
+        hparams, hparams_path)
+    hparams = extend_hparams(hparams)
+  else:
+    hparams = ensure_compatible_hparams(hparams, default_hparams, hparams_path)
+
+  # Save HParams
+  if save_hparams:
+    utils.save_hparams(out_dir, hparams)
+    for metric in hparams.metrics:
+      utils.save_hparams(getattr(hparams, "best_" + metric + "_dir"), hparams)
+
+  # Print HParams
+  utils.print_hparams(hparams)
+  return hparams
+
+
+def load_hparams(model_dir):
+  """Load hparams from an existing model directory."""
+  if tf.gfile.Exists(hparams_file):
+    print_out("# Loading hparams from %s" % hparams_file)
+    with codecs.getreader("utf-8")(tf.gfile.GFile(hparams_file, "rb")) as f:
+      try:
+        hparams_values = json.load(f)
+        hparams = tf.contrib.training.HParams(**hparams_values)
+      except ValueError:
+        print_out("  can't load hparams file")
+        return None
+    return hparams
+  else:
+    return None
