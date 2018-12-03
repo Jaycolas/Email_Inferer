@@ -24,27 +24,30 @@ def vocab_test():
     mpss_pl_vocab = load_obj(FILEPATH, 'mpss_pl_vocab')
     general_vocab = load_obj(FILEPATH, 'general_vocab')
 
-    for i in assignee_vocab.index_to_word:
-        print "The %dth index for assignee_vocab is %s"%(i, assignee_vocab.index_to_word[i])
+    #for i in assignee_vocab.index_to_word:
+        #print "The %dth index for assignee_vocab is %s"%(i, assignee_vocab.index_to_word[i])
 
-    for word in assignee_vocab.word_to_index:
-        print "Word %s's index in assignee_vocab is %d"%(word, assignee_vocab.word_to_index[word])
+    #for word in assignee_vocab.word_to_index:
+        #print "Word %s's index in assignee_vocab is %d"%(word, assignee_vocab.word_to_index[word])
 
-    for i in mpss_pl_vocab.index_to_word:
-        print "The %dth index for mpss_pl_vocab is %s" % (i, mpss_pl_vocab.index_to_word[i])
+    #for i in mpss_pl_vocab.index_to_word:
+        #print "The %dth index for mpss_pl_vocab is %s" % (i, mpss_pl_vocab.index_to_word[i])
 
-    for word in mpss_pl_vocab.word_to_index:
-        print "Word %s's index in mpss_pl_vocab is %d"%(word, mpss_pl_vocab.word_to_index[word])
+    #for word in mpss_pl_vocab.word_to_index:
+        #print "Word %s's index in mpss_pl_vocab is %d"%(word, mpss_pl_vocab.word_to_index[word])
 
-    #for i in general_vocab.index_to_word:
-        #print "The %dth index for general_vocabis %s" % (i, general_vocab.index_to_word[i])
+    for word in general_vocab.word_to_index:
+        print "Word %s's index in general_vocab is %d"%(word, general_vocab.word_to_index[word])
 
-    #for word in general_vocab.word_to_index:
-        #print "Word %s's index in general_vocab is %d"%(word, general_vocab.word_to_index[word])
+    for i in general_vocab.index_to_word:
+        print "The %dth index for general_vocabis %s" % (i, general_vocab.index_to_word[i])
+
+
 
     print "Total length for assignee vocab is %d"%(len(assignee_vocab))
     print "Total length for mpss_pl_vocab is %d"%(len(mpss_pl_vocab))
     print "Total length for general_vocab is %d"%(len(general_vocab))
+
 
 def _parse_function(example_proto):
   features = {"y": tf.VarLenFeature(tf.int64),
@@ -59,13 +62,19 @@ def check_tfrecord_file(tfrecord_file, input_vocab, label_vocab):
     for string_record in record_iterator:
         example = tf.train.Example()
         example.ParseFromString(string_record)
+        if input_vocab:
+            x = (example.features.feature['x'].int64_list.value)
 
-        x = (example.features.feature['x'].int64_list.value)
-        y = (example.features.feature['y'].int64_list.value)
+        if label_vocab:
+            y = (example.features.feature['y'].int64_list.value)
         # data = np.fromstring(data_string, dtype=np.int64)
         print "One item printed out ================================================================"
-        print ' '.join(label_vocab.decode_index_list(y))
-        print ' '.join(input_vocab.decode_index_list(x))
+
+        if label_vocab:
+            print ' '.join(label_vocab.decode_index_list(y))
+
+        if input_vocab:
+            print ' '.join(input_vocab.decode_index_list(x))
 
 def padding_max_cut(input_tensor, padded_value, max_length):
     #Cut all dimension of input tensor to be under the same max_length
@@ -143,11 +152,6 @@ def test_dense_vector(dense_vector, index, total_length):
     for i in index:
         print "The %dth value is %d"%(i, dense_vector[i])
 
-
-
-general_vocab = load_obj(FILEPATH, 'general_vocab')
-mpss_pl_vocab = load_obj(FILEPATH, 'mpss_pl_vocab')
-
 #vocab_test()
-check_tfrecord_file(TRAIN_TFRECORD_FILE, general_vocab, mpss_pl_vocab)
+check_tfrecord_file(TRAIN_TFRECORD_FILE, label_vocab= mpss_pl_vocab, input_vocab=None)
 #check_tfrecord_file(TFRECORD_FILE)

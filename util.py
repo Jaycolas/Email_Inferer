@@ -9,6 +9,8 @@ import numpy as np
 from collections import defaultdict
 import pickle
 import matplotlib.pyplot as plt
+import codecs
+import json
 
 __author__ = 'Jaycolas'
 
@@ -36,6 +38,7 @@ class Vocab(object):
       index = len(self.word_to_index)
       self.word_to_index[word] = index
       self.index_to_word[index] = word
+      self.vocab_len+=1
     self.word_freq[word] += count
 
     #Record the most count of one word
@@ -49,6 +52,7 @@ class Vocab(object):
       del self.word_freq[word]
       del self.word_to_index[word]
       del self.index_to_word[index]
+      self.vocab_len-=1
 
   def filter_dictionary(self, lower_threshold):
     filter_cnt = 0
@@ -71,7 +75,18 @@ class Vocab(object):
     plt.scatter(x[0:300], y[0:300])
     plt.show()
 
-
+  #After certain kinds of filtering the index might not be sequential, need to reorder it.
+  def reorder_dictionary(self):
+    i = 0
+    #Please note that python will not allow you modify dictionary when you iterate it, so using enumerate won't work
+    for index in self.index_to_word.keys():
+        if index > i:
+            #when index>i you found out one jump value
+            word = self.index_to_word[index]   #first you get the word of the unsequential word
+            self.word_to_index[word] = i       #You set the word_to_index with the sequential index
+            self.index_to_word[i] = word       #You create a new item for index_to_word with index = i
+            del self.index_to_word[index]      #Delete the same value with the jump index
+        i+=1
 
   def construct(self, words):
     for word in words:
@@ -140,8 +155,10 @@ def index_to_label_vector(index_batch, label_vocab):
     ret_dense_vector = []
 
     for index in index_batch:
+        #print index
         index = index[index != 0]
-        label_vector = np.zeros(int(label_vocab.vocab_len))
+        #print index
+        label_vector = np.zeros(int(len(label_vocab)))
         label_vector[index]=1
         ret_dense_vector.append(label_vector)
 
@@ -190,6 +207,8 @@ def for_grad_var_names(var_name):
     transfer_name = var_name.replace('/','_')
     transfer_name = var_name.replace(':','_')
     return transfer_name
+
+
 
 def get_data_from_files(dataset, input_fname_pattern, dictionary):
     docFiles = glob.glob(os.path.join("./dataset", dataset, input_fname_pattern))
@@ -269,40 +288,36 @@ def create_hparams(flags):
       debug=flags.debug
   )
 
-def create_or_load_hparams(
-    out_dir, default_hparams, hparams_path, save_hparams=True):
+def create_or_load_hparams(hparams_file, default_hparams):
   """Create hparams or load hparams from out_dir."""
-  hparams = utils.load_hparams(out_dir)
+  hparams = load_hparams(hparams_file)
   if not hparams:
     hparams = default_hparams
-    hparams = utils.maybe_parse_standard_hparams(
-        hparams, hparams_path)
-    hparams = extend_hparams(hparams)
-  else:
-    hparams = ensure_compatible_hparams(hparams, default_hparams, hparams_path)
 
-  # Save HParams
-  if save_hparams:
-    utils.save_hparams(out_dir, hparams)
-    for metric in hparams.metrics:
-      utils.save_hparams(getattr(hparams, "best_" + metric + "_dir"), hparams)
-
-  # Print HParams
-  utils.print_hparams(hparams)
   return hparams
 
 
-def load_hparams(model_dir):
+def load_hparams(hparams_file):
   """Load hparams from an existing model directory."""
   if tf.gfile.Exists(hparams_file):
-    print_out("# Loading hparams from %s" % hparams_file)
+    print("# Loading hparams from %s" % hparams_file)
     with codecs.getreader("utf-8")(tf.gfile.GFile(hparams_file, "rb")) as f:
       try:
         hparams_values = json.load(f)
         hparams = tf.contrib.training.HParams(**hparams_values)
       except ValueError:
-        print_out("  can't load hparams file")
+        print("  can't load hparams file")
         return None
     return hparams
   else:
+    print("Nothing has been loaded from %s" % hparams_file)
     return None
+
+def print_hparams(hparams, skip_patterns=None, header=None):
+  """Print hparams, can skip keys based on pattern."""
+  if header: print("%s" % header)
+  values = hparams.values()
+  for key in sorted(values.keys()):
+    if not skip_patterns or all(
+        [skip_pattern not in key for skip_pattern in skip_patterns]):
+      print("  %s=%s" % (key, str(values[key])))

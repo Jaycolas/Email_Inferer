@@ -5,7 +5,7 @@ from __future__ import print_function
 import tensorflow as tf
 import os
 from text_cnn import  TextCNN
-from util import load_obj, save_obj,index_to_label_vector, create_hparams
+from util import load_obj, save_obj,index_to_label_vector, create_hparams, create_or_load_hparams, print_hparams
 import time
 from tensorflow.python import debug as tf_debug
 import datetime
@@ -65,8 +65,8 @@ TRAIN_TFRECORD_DATA = os.path.join(ROOT_PATH, 'train.tfrecords')
 DEV_TFRECORD_DATA   = os.path.join(ROOT_PATH, 'dev.tfrecords')
 VAL_TFRECORD_DATA   = os.path.join(ROOT_PATH, 'val.tfrecords')
 
-
 FLAGS=None
+
 
 def add_arguments(parser):
     """Build ArgumentParser."""
@@ -87,7 +87,7 @@ def add_arguments(parser):
 
     # Training parameters
     parser.add_argument("--batch_size", type=int, default=128, help="Batch Size (default: 64)")
-    parser.add_argument("--num_epochs", type=int, default=100, help="Number of training epochs (default: 200)")
+    parser.add_argument("--num_epochs", type=int, default=50, help="Number of training epochs (default: 200)")
     parser.add_argument("--evaluate_every", type=int, default=20, help="Evaluate model on dev set after this many steps (default: 100)")
     parser.add_argument("--checkpoint_every_epoch", type=int, default=5, help="Save model after this many epoch (default: 100)")
     parser.add_argument("--restore_checkpoint", type=str, default="./", help="Checkpoint location of current training")
@@ -95,9 +95,10 @@ def add_arguments(parser):
     parser.add_argument("--warmup_scheme", type=str,default="t2t", help="The scheme for learning rate warm up (default: t2t)")
     parser.add_argument("--decay_scheme", type=str, default="luong10", help="The scheme for learning rate decay (default: luong10)")
     parser.add_argument("--warmup_step", type=int,default="10", help="The global step when learning rate warm up begins (default: 10)")
-    parser.add_argument("--num_train_steps", type=int, default=300, help="The maximum total number of train steps")
+    parser.add_argument("--num_train_steps", type=int, default=750, help="The maximum total number of train steps")
     parser.add_argument("--num_gpus", type=int, default=0, help="GPUs you wana use in your training, default is 0, will apply model on CPU")
-    parser.add_argument("--hparams_path", type=str, default='./', help="The place where we could load different hparams")
+    parser.add_argument("--hparams_path", type=str, default='./standard_hparams', help="The place where we could load different hparams")
+    parser.add_argument("--hparams_file", type=str, default='nofile', help="The specific hparams file you like to load")
 
     # Misc Parameters
     parser.add_argument("--allow_soft_placement", type=bool, default=True, help="Allow device soft device placement")
@@ -112,15 +113,22 @@ def _parse_function(example_proto):
   return tf.sparse_tensor_to_dense(parsed_features["y"]), tf.sparse_tensor_to_dense(parsed_features["x"])
 
 
-def train(hparams):
+def train(unused_argv):
 
     #1. Preparing dataset
-    #hparams = create_hparams(FLAGS)
+    default_hparams = create_hparams(FLAGS)
+    hfile = os.path.join(FLAGS.hparams_path, FLAGS.hparams_file)
+    hparams = create_or_load_hparams(hfile, default_hparams)
+    print_hparams(hparams, header="*****************The Hparams of this run are as below:")
+
+
+    #2. Preparing dataset
     train_dataset = tf.data.TFRecordDataset(TRAIN_TFRECORD_DATA)
     dev_dataset = tf.data.TFRecordDataset(DEV_TFRECORD_DATA)
     val_dataset = tf.data.TFRecordDataset(VAL_TFRECORD_DATA)
     input_vocab = load_obj(ROOT_PATH, 'general_vocab')
     label_vocab = load_obj(ROOT_PATH, 'mpss_pl_vocab')
+
     max_length = hparams.sequence_length
     batch_size = hparams.batch_size
     train_dataset = train_dataset.map(_parse_function)
@@ -261,17 +269,10 @@ def train(hparams):
                         sess.run(val_iterator.initializer, feed_dict=None)
                         break
 
-
-def main(unused_argv):
-    default_hparams = create_hparams(FLAGS)
-    other_hparams = load_hparams(FLAGS.hparams_path)
-
-
 if __name__ == "__main__":
     nmt_parser = argparse.ArgumentParser()
     add_arguments(nmt_parser)
     FLAGS, unparsed = nmt_parser.parse_known_args()
-
     tf.app.run(main=train, argv=[sys.argv[0]] + unparsed)
 
 

@@ -178,8 +178,10 @@ def tfrecord_main():
     general_vocab.filter_dictionary(lower_threshold=LOWER_DIC_FILTER_THRESHOLD)
     #mpss_pl_vocab.filter_dictionary(lower_threshold=LOWER_DIC_FILTER_THRESHOLD)
 
-    #save_obj(FILEPATH, general_vocab, 'general_vocab')
-    #save_obj(FILEPATH, mpss_pl_vocab, 'mpss_pl_vocab')
+    general_vocab.reorder_dictionary()
+
+    save_obj(FILEPATH, general_vocab, 'general_vocab')
+    save_obj(FILEPATH, mpss_pl_vocab, 'mpss_pl_vocab')
 
     train_list, dev_list, val_list = split_train_dev_val(jira_xlxs_list, DEV_SAMPLE_PER, VAL_SAMPLE_PER)
 

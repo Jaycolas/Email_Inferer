@@ -60,10 +60,12 @@ print("")
 '''
 
 
-ROOT_PATH ='./dataset/email'
+ROOT_PATH ='./dataset/jira'
 TRAIN_TFRECORD_DATA = os.path.join(ROOT_PATH, 'train.tfrecords')
 DEV_TFRECORD_DATA   = os.path.join(ROOT_PATH, 'dev.tfrecords')
 VAL_TFRECORD_DATA   = os.path.join(ROOT_PATH, 'val.tfrecords')
+INPUT_VOCAB = 'general_vocab'
+LABEL_VOCAB = 'mpss_pl_vocab'
 
 FLAGS=None
 
@@ -125,6 +127,7 @@ def create_hparams(flags):
       sequence_length=flags.sequence_length,
       learning_rate=flags.learning_rate,
       l2_reg_lambda=flags.l2_reg_lambda,
+      is_multiclass=flags.is_multiclass,
 
       # Training Parameters
       batch_size=flags.batch_size,
@@ -154,8 +157,8 @@ def train(unused_argv):
     train_dataset = tf.data.TFRecordDataset(TRAIN_TFRECORD_DATA)
     dev_dataset = tf.data.TFRecordDataset(DEV_TFRECORD_DATA)
     val_dataset = tf.data.TFRecordDataset(VAL_TFRECORD_DATA)
-    input_vocab = load_obj('input_vocab')
-    label_vocab = load_obj('label_vocab')
+    input_vocab = load_obj(ROOT_PATH, INPUT_VOCAB)
+    label_vocab = load_obj(ROOT_PATH, LABEL_VOCAB)
     max_length = hparams.sequence_length
     batch_size = hparams.batch_size
     train_dataset = train_dataset.map(_parse_function)
