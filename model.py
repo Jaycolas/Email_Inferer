@@ -1,8 +1,8 @@
-
 import tensorflow as tf
 import numpy as np
-from util import index_to_label_vector, label_vector_to_index
+from util import index_to_label_vector, label_vector_to_index, tokenize_helper
 import datetime
+import numpy as np
 
 
 
@@ -378,6 +378,32 @@ class Model(object):
       print("Real result is ", real)
       print("Predicted result is", predict)
 
+  def predict(self, sess, input_txt, input_vocab, label_vocab):
+    x_txt=tokenize_helper(input_txt)
+    x = input_vocab.encode_word_list(x_txt.split())
+    x = np.array(x)
+    x_length = np.size(x)
+    print("The length of input text is %d"%x_length)
+
+    if x_length<self.sequence_length:
+      x_padded = np.pad(x, (0, self.sequence_length-x_length), 'constant',
+                        constant_values=(0, input_vocab.word_to_index[input_vocab.padding]))
+    else:
+      x_padded = x[0:self.sequence_length]
+
+    x_padded=np.reshape(x_padded, (-1,self.sequence_length))
+    print(x_padded)
+
+
+    feed_dict = {self.input_placeholder: x_padded,
+                 #self.labels_placeholder: None,
+                 self.dropout_placeholder: 1.0}
+
+    prediction = sess.run(self.predictions, feed_dict=feed_dict)
+    _, prediction_result = label_vector_to_index(prediction, label_vocab)
+
+
+    return prediction_result
 
 
 
